@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAWACO - Quản Lý Đoàn Thanh Niên</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js & DataTables -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* High-Tech Digital Dark Palette */
+            --primary: #007bff; /* Vibrant blue */
+            --primary-light: rgba(0, 123, 255, 0.2); 
+            --accent: #00d4ff; /* Neon Cyan */
+            --red: #ff4757; 
+            --green: #2ed573;
+            --purple: #9b59b6;
+            
+            --bg-base: #030b1c; /* Deep tech space blue */
+            --bg-card: #0a192f; /* Solid dark blue, less blur */
+            
+            --text-heading: #ffffff; /* Crisp white headers */
+            --text-body: #e2e8f0; 
+            --text-muted: #94a3b8;
+            
+            --border: #1e3a8a;
+            --shadow-sm: 0 0 5px rgba(0,212,255,0.1);
+            --shadow-md: 0 0 10px rgba(0,212,255,0.15);
+            --shadow-lg: 0 0 20px rgba(0,212,255,0.3);
+            --radius-xl: 12px;
+            --radius-lg: 8px;
+            --radius-md: 6px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { 
+            background-color: var(--bg-base); 
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text-body); 
+            font-size: 14px; 
+            -webkit-font-smoothing: antialiased; 
+            line-height: 1.5; 
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Top Navbar */
+        .header {
+            background: #020813;
+            border-bottom: 2px solid var(--accent);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand-logo { color: var(--accent); font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; text-decoration: none; text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+        .system-title { font-size: 16px; font-weight: 700; color: var(--text-heading); text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 0 5px rgba(255,255,255,0.3); }
+
+        /* Layout */
+        .layout-wrapper { display: flex; min-height: calc(100vh - 70px); }
+
+        /* Modern Sidebar Tabs */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            flex-shrink: 0;
+        }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: var(--radius-lg);
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-item i { font-size: 18px; width: 24px; text-align: center; }
+        .nav-item:hover { background: var(--primary-light); color: var(--primary); transform: translateX(4px); }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); }
+        .nav-item.active i { color: white; }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            padding: 30px 40px;
+            max-width: 1400px;
+            overflow-y: auto;
+        }
+
+        .tab-pane { display: none; opacity: 0; transform: translateY(10px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .tab-pane.active { display: block; opacity: 1; transform: translateY(0); }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        
+        .stat-card {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .stat-card::before {
+            content: ''; position: absolute; right: -20px; top: -20px; width: 100px; height: 100px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%); border-radius: 50%; opacity: 0.1;
+        }
+
+        .stat-card .icon-wrapper { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+        .stat-card h4 { color: var(--text-muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 800; color: var(--text-heading); }
+
+        /* Card Panels */
+        .panel {
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .panel-title { font-size: 16px; font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 8px; }
+        .panel-title i { color: var(--primary); }
+        .panel-body { padding: 24px; }
+
+        /* Dashboard specific layouts */
+        .dash-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+        /* Typography Tags */
+        .tag { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; }
+        .tag-blue { background: rgba(0, 212, 255, 0.1); color: #00d4ff; border-color: rgba(0,212,255,0.3); }
+        .tag-red { background: rgba(255, 71, 87, 0.1); color: #ff4757; border-color: rgba(255,71,87,0.3); }
+        .tag-green { background: rgba(46, 213, 115, 0.1); color: #2ed573; border-color: rgba(46,213,115,0.3); }
+        .tag-purple { background: rgba(155, 89, 182, 0.1); color: #e056fd; border-color: rgba(224,86,253,0.3); }
+        .tag-orange { background: rgba(255, 165, 2, 0.1); color: #ffa502; border-color: #ffa502; }
+
+        /* Modern Inputs */
+        .search-bar { position: relative; width: 100%; max-width: 400px; }
+        .search-bar input { width: 100%; padding: 12px 16px 12px 42px; border-radius: 30px; border: 1px solid var(--border); font-size: 14px; background: rgba(0,0,0,0.5); color: white; transition: var(--transition); outline: none; }
+        .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(0,212,255,0.3); background: #020813; }
+        .search-bar i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--accent); }
+
+        /* Beautiful Tables */
+        .table-container { overflow-x: auto; margin: 0 -24px; padding: 0 24px; max-height: 600px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { background: #051024; color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 20px; text-align: left; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--accent); }
+        td { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-body); vertical-align: middle; transition: background 0.2s; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: rgba(0, 123, 255, 0.1); cursor: default; }
+        
+        .avatar-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin-right: 12px; }
+        .user-block { display: flex; align-items: center; font-weight: 600; color: var(--text-heading); }
+
+        /* Progress Bar */
+        .progress-wrapper { width: 100%; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .progress-bg { height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 1s ease-out; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(3, 11, 28, 0.85); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
+            width: 90%; max-width: 700px; max-height: 90vh;
+            transform: translateY(20px); transition: all 0.3s;
+            display: flex; flex-direction: column;
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { display: flex; align-items: center; gap: 10px; margin: 0; }
+        .close-btn { background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; transition: 0.2s; }
+        .close-btn:hover { color: var(--red); }
+        .modal-body { padding: 24px; overflow-y: auto; }
+        .cv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .cv-item { background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .cv-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+        .cv-value { font-size: 15px; color: var(--text-heading); font-weight: 600; }
+        .cv-full { grid-column: span 2; }
+
+    </style>
+    <script src="./cong_van_doan_data.js"></script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <a href="#" class="brand-logo" style="display: flex; align-items: center; justify-content: flex-start; text-decoration: none; width: 280px;">
+            <svg width="44" height="44" viewBox="0 0 100 100" style="filter: drop-shadow(0 0 8px rgba(0,212,255,0.8)); margin-right: 12px;">
+                <path d="M50 15 L85 80 L15 80 Z" stroke="#007bff" stroke-width="12" stroke-linejoin="round" fill="none"/>
+                <path d="M50 35 C50 35 38 55 38 65 C38 72 43 77 50 77 C57 77 62 72 62 65 C62 55 50 35 50 35 Z" fill="#00d4ff"/>
+            </svg>
+            <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-style: italic; font-size: 26px; font-weight: 900; color: #ffffff; text-shadow: 0 0 15px rgba(0,212,255,0.8); letter-spacing: 1px;">TAWACO</span>
+        </a>
+        
+        <div class="system-title" style="flex: 1; text-align: center; font-size: 18px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 15px rgba(0,212,255,0.5);">
+            Hệ Thống Quản Lý Đoàn Thanh Niên Cơ Sở
+        </div>
+        
+        <div style="width: 280px; display: flex; justify-content: flex-end; align-items: center;">
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: #ffffff; border: 2px solid #00d4ff; box-shadow: 0 0 15px rgba(0,212,255,0.8); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/11/Logo-Doan-Thanh-Nien-Cong-San-Ho-Chi-Minh.png" 
+                     onerror="this.src='./logo_doan.jpg'; this.onerror=null;" 
+                     alt="Đoàn Thanh Niên" 
+                     style="height: 100%; width: 100%; object-fit: cover; transform: scale(1.03);">
+            </div>
+        </div>
+    </header>
+
+    <div class="layout-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav>
+                <div class="nav-item active" onclick="switchTab('dashboard', this)">
+                    <i class="fa-solid fa-border-all"></i> Tổng Quan
+                </div>
+                <div class="nav-item" onclick="switchTab('members', this)">
+                    <i class="fa-solid fa-users-viewfinder"></i> Danh Sách Hồ Sơ
+                </div>
+                <div class="nav-item" onclick="switchTab('activities', this)">
+                    <i class="fa-regular fa-calendar-check"></i> Hoạt Động & Sự Kiện
+                </div>
+                <div class="nav-item" onclick="switchTab('projects', this)">
+                    <i class="fa-solid fa-rocket"></i> Công Trình Trọng Điểm
+                </div>
+                <div class="nav-item" onclick="switchTab('congvan', this)">
+                    <i class="fa-solid fa-file-signature"></i> Công Văn Đoàn
+                </div>
+            </nav>
+            <div style="margin-top: 50px; padding: 20px; background: var(--primary-light); border-radius: var(--radius-lg); text-align: center;">
+                <p style="font-size: 12px; color: var(--primary); font-weight: 600;">HỆ THỐNG DỮ LIỆU ĐỒNG BỘ</p>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Cập nhật Tự động năm 2026</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- TAB: CÔNG VĂN ĐOÀN -->
+            <div id="tab-congvan" class="tab-pane">
+                <div class="panel-header" style="justify-content: space-between; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 24px;">
+                    <h3 class="panel-title" style="flex: 1;"><i class="fa-solid fa-file-signature"></i>Văn Bản / Công Văn Đoàn (Nội bộ đến)</h3>
+                </div>
+                <div class="panel">
+                    <div class="table-container" style="max-height: 800px;">
+                        <table id="tbl-congvan">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%">Số/Ký Hiệu</th>
+                                    <th style="width: 10%">Ngày</th>
+                                    <th style="width: 60%">Trích Yếu</th>
+                                    <th style="width: 15%">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dữ liệu công văn render ở đây -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: DASHBOARD -->
+            <div id="tab-dashboard" class="tab-pane active">
+                <div style="margin-bottom: 24px;">
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--text-heading);">Bảng Điều Khiển Trung Tâm</h2>
+                    <p style="color: var(--text-muted);">Phân tích chi tiết số liệu Đoàn viên và Hoạt động năm 2026</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card" style="border-top: 4px solid var(--primary);">
+                        <div class="icon-wrapper" style="background: var(--primary-light); color: var(--primary);"><i class="fa-solid fa-users"></i></div>
+                        <h4>TỔNG SỐ ĐOÀN VIÊN</h4>
+                        <div class="value">84 <span style="font-size: 14px; font-weight: 600; color: var(--green);"><i class="fa-solid fa-arrow-trend-up"></i> ổn định</span></div>
+                    </div>
+                    <div class="stat-card" style="border-top: 4px solid var(--purple);">
+                        <div class="icon-wrapper" style="background: #f3e8ff; color: var(--purple);"><i class="fa-solid fa-venus-mars"></i></div>
+                        <h4>TỶ LỆ NAM / NỮ</h4>
+                        <div class="value">70 / 14</div>
+                    </div>
+                    <div class="stat-card" style="border-top: 4px solid var(--red);">
+                        <div class="icon-wrapper" style="background: #fee2e2; color: var(--red);"><i class="fa-solid fa-star"></i></div>
+                        <h4>ĐẢNG VIÊN ĐANG SHĐ</h4>
+                        <div class="value">19</div>
+                    </div>
+                    <div class="stat-card" style="border-top: 4px solid var(--green);">
+                        <div class="icon-wrapper" style="background: #dcfce3; color: var(--green);"><i class="fa-solid fa-flag-checkered"></i></div>
+                        <h4>TỔNG HOẠT ĐỘNG</h4>
+                        <div class="value">28</div>
+                    </div>
+                </div>
+
+                <div class="dash-grid">
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-sitemap"></i>Cơ Cấu Chi Đoàn theo Đơn Vị</div></div>
+                        <div class="panel-body">
+                            <canvas id="barChart" height="250"></canvas>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-chart-pie"></i>Tỷ Lệ Giới Tính</div></div>
+                        <div class="panel-body">
+                            <canvas id="pieChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: DANH SÁCH ĐOÀN VIÊN -->
+            <div id="tab-members" class="tab-pane">
+                <div class="panel">
+                    <div class="panel-header" style="flex-wrap: wrap; gap: 15px;">
+                        <div class="panel-title"><i class="fa-solid fa-id-card-clip"></i>Hồ Sơ Đoàn Viên Trực Thuộc (84)</div>
+                        <div class="search-bar">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="member-search" placeholder="Gõ tên, mã đoàn viên hoặc quê quán để tìm siêu tốc...">
+                        </div>
+                        <button style="background: var(--bg-card); border: 1px solid var(--accent); padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; color: var(--text-heading);"><i class="fa-solid fa-file-excel" style="color: #2ed573;"></i> Xuất Dữ Liệu</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-members">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%">STT</th>
+                                    <th style="width: 12%">Mã ĐV</th>
+                                    <th style="width: 25%">Họ và Tên</th>
+                                    <th style="width: 10%">Giới Tính</th>
+                                    <th style="width: 15%">Chi Đoàn</th>
+                                    <th style="width: 23%">Quê Quán</th>
+                                    <th style="width: 10%">Lý Lịch</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Generated Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: HOẠT ĐỘNG & SỰ KIÊN -->
+            <div id="tab-activities" class="tab-pane">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fa-regular fa-clock"></i>Nhật Ký 28 Hoạt Động & Sự Kiện Năm 2026</div>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-activities">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th style="width: 40%">Tên Chương Trình / Hoạt Động</th>
+                                    <th>Thời Gian Dự Kiến</th>
+                                    <th>Trạng Thái</th>
+                                    <th>Minh Chứng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Generated Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: CÔNG TRÌNH TRỌNG ĐIỂM -->
+            <div id="tab-projects" class="tab-pane">
+                <div class="panel" style="background: linear-gradient(135deg, var(--primary) 0%, #172554 100%); color: white;">
+                    <div class="panel-body" style="padding: 30px;">
+                        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--accent);">TỔNG QUAN 6 CÔNG TRÌNH & GIẢI PHÁP TRỌNG ĐIỂM 2026</h2>
+                        <p style="opacity: 0.9;">Gắn kết sát sao nhiệt huyết tuổi trẻ với nhiệm vụ sản xuất kinh doanh và phát triển dịch vụ khách hàng bền vững của Công ty.</p>
+                    </div>
+                </div>
+
+                <div class="dash-grid" style="grid-template-columns: 1fr;">
+                    <div class="panel">
+                        <div class="table-container" style="max-height: 800px;">
+                            <table id="tbl-projects">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 5%">#</th>
+                                        <th style="width: 10%">Phân Loại</th>
+                                        <th style="width: 45%">Nội Dung Công Trình / Giải Pháp Trọng Điểm</th>
+                                        <th style="width: 30%">Trạng Thái Thực Hiện</th>
+                                        <th style="width: 10%">Hành Động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- JS Generated Content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    </main>
+    </div>
+
+    <!-- Modal Lý Lịch -->
+    <div id="cvModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 20px; font-weight: 800; color: var(--accent);"><i class="fa-solid fa-address-card"></i> LÝ LỊCH ĐOÀN VIÊN</h3>
+                <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="modal-body-content">
+                <!-- Info will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Logic -->
+    <script>
+        // ======= REAL DATA INJECTION =======
+        let membersData = [];
+
+        function fetchGoogleSheetData() {
+            window.processGoogleSheetData = function(data) {
+                try {
+                    let loadedData = [];
+                    data.table.rows.forEach((row, i) => {
+                        const getVal = (idx) => {
+                            if (!row.c[idx] || row.c[idx].v === null) return '';
+                            return row.c[idx].f !== undefined ? row.c[idx].f : row.c[idx].v;
+                        };
+                        if(!getVal(1)) return; // No Name -> skip
+                        loadedData.push({
+                            _index: loadedData.length,
+                            stt: getVal(0) || loadedData.length + 1,
+                            id: getVal(2) || 'N/A',
+                            name: getVal(1),
+                            gender: getVal(4) === 'x' ? 'Nữ' : 'Nam',
+                            dantoc: getVal(5),
+                            tongiao: getVal(6),
+                            place: getVal(7),
+                            diachi: getVal(8),
+                            cmnd: String(getVal(9) || ''),
+                            ngaycap: getVal(10),
+                            noicap: getVal(11),
+                            td_vanhoa: getVal(12),
+                            td_chuyenmon: getVal(13),
+                            td_llct: getVal(14),
+                            ngayvaodoan: getVal(15),
+                            ngayvaodang: getVal(16),
+                            chucvu: getVal(17),
+                            email: getVal(18),
+                            phone: String(getVal(19) || ''),
+                            phongban: getVal(20),
+                            branch: getVal(21) ? 'Chi đoàn ' + getVal(21) : 'Chưa rõ',
+                            ghichu: getVal(22)
+                        });
+                    });
+                    
+                    membersData = loadedData;
+                    
+                    // Cập nhật số liệu trên Dashboard
+                    const countDiv = document.querySelector('.stat-card .value');
+                    if(countDiv) {
+                        countDiv.innerHTML = membersData.length + ' <span style="font-size: 14px; font-weight: 600; color: var(--green);"><i class="fa-solid fa-arrow-trend-up"></i> ổn định</span>';
+                    }
+                    const headerCount = document.querySelector('.panel-title i.fa-id-card-clip');
+                    if(headerCount) {
+                        headerCount.parentNode.innerHTML = '<i class="fa-solid fa-id-card-clip"></i>Hồ Sơ Đoàn Viên Trực Thuộc (' + membersData.length + ')';
+                    }
+                    
+                    renderData();
+                    
+                    // Init Search Engine
+                    document.getElementById('member-search').addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        renderMembers(membersData.filter(m => m.name.toLowerCase().includes(term) || m.id.toLowerCase().includes(term) || (m.place && m.place.toLowerCase().includes(term))));
+                    });
+                    
+                } catch(e) {
+                    console.error("Lỗi khi xử lý dữ liệu JSONP:", e);
+                    renderData();
+                }
+            };
+            
+            const script = document.createElement('script');
+            script.src = "https://docs.google.com/spreadsheets/d/1u5qd8B8MXKZRF7PRR6540RWntvkdl5BVTGlTw7agRmg/gviz/tq?tqx=responseHandler:processGoogleSheetData&gid=219905795";
+            script.onerror = () => {
+                console.error("Không thể tải Google Sheet via JSONP.");
+                renderData();
+            };
+            document.body.appendChild(script);
+        }
+
+        // Modal Functions
+        function openModal(index) {
+            const m = membersData[index];
+            if(!m) return;
+            const content = document.getElementById('modal-body-content');
+            content.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">
+                        ${m.name.split(' ').pop()[0]}
+                    </div>
+                    <div>
+                        <h2 style="color: var(--text-heading); font-size: 22px; margin-bottom: 5px;">${m.name}</h2>
+                        <span class="tag ${m.branch === 'Chi đoàn 1' ? 'tag-purple' : 'tag-orange'}">${m.branch}</span>
+                        <span class="tag tag-blue">${m.chucvu || 'Đoàn viên'}</span>
+                    </div>
+                </div>
+                <div class="cv-grid">
+                    <div class="cv-item"><div class="cv-label">Mã Đoàn Viên</div><div class="cv-value">${m.id}</div></div>
+                    <div class="cv-item"><div class="cv-label">Giới Tính</div><div class="cv-value">${m.gender}</div></div>
+                    <div class="cv-item"><div class="cv-label">Ngày Vào Đoàn</div><div class="cv-value">${m.ngayvaodoan || '-'}</div></div>
+                    <div class="cv-item"><div class="cv-label">Ngày Vào Đảng</div><div class="cv-value">${m.ngayvaodang || '-'}</div></div>
+                    
+                    <div class="cv-item cv-full"><div class="cv-label">Quê Quán</div><div class="cv-value">${m.place || '-'}</div></div>
+                    <div class="cv-item cv-full"><div class="cv-label">Thường Trú</div><div class="cv-value">${m.diachi || '-'}</div></div>
+                    
+                    <div class="cv-item"><div class="cv-label">CCCD / CMND</div><div class="cv-value">${m.cmnd || '-'}</div></div>
+                    <div class="cv-item"><div class="cv-label">Ngày / Nơi Cấp</div><div class="cv-value">${m.ngaycap ? m.ngaycap + ' ('+m.noicap+')' : '-'}</div></div>
+                    
+                    <div class="cv-item"><div class="cv-label">Dân Tộc</div><div class="cv-value">${m.dantoc || '-'}</div></div>
+                    <div class="cv-item"><div class="cv-label">Tôn Giáo</div><div class="cv-value">${m.tongiao || '-'}</div></div>
+                    
+                    <div class="cv-item cv-full"><div class="cv-label">Phòng / Ban</div><div class="cv-value">${m.phongban || '-'}</div></div>
+                    
+                    <div class="cv-item"><div class="cv-label">Văn Hóa</div><div class="cv-value">${m.td_vanhoa || '-'}</div></div>
+                    <div class="cv-item"><div class="cv-label">Chuyên Môn</div><div class="cv-value">${m.td_chuyenmon || '-'}</div></div>
+                    
+                    <div class="cv-item"><div class="cv-label">Điện Thoại</div><div class="cv-value">${m.phone || '-'}</div></div>
+                    <div class="cv-item"><div class="cv-label">Email</div><div class="cv-value">${m.email || '-'}</div></div>
+                </div>
+            `;
+            document.getElementById('cvModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('cvModal').classList.remove('active');
+        }
+
+        // Exact 28 Activities
+        const activitiesList = [
+            "Chào cờ chào mừng đại hội Đảng XIV (19/01/2026)", "Ngày hội Sawaco (28/01/2026)", "Chiến dịch xuân tình nguyện 2026 (1-2/2026)",
+            "CTTN sơn vẽ tường (2-3/2026)", "Kết nạp đảng tháng Thanh niên (20/03/2026)", "Sinh hoạt chủ điểm kết hợp trưởng thành đoàn (22/03/2026)",
+            "Chào cờ kỷ niệm 95 năm, trao DS ĐV ưu tú cho Đảng (23/03/2026)", "Chương trình kỷ niệm 95 năm, khen thưởng CB Đoàn (26/03/2026)",
+            "Tập huấn cho cán bộ đoàn xã Phước Hải (27-28/3/2026)", "HĐ văn thể mỹ tổ chức chào mừng 30/4, 1/5", "Hội thi học tập tấm gương đạo đức Hồ Chí Minh",
+            "Kỷ niệm 21 năm thành lập TCT và Đảng bộ TCT", "Chương trình hiến máu 'Một giọt máu triệu tấm lòng' - Lần 1",
+            "Rà soát quy hoạch cán bộ đoàn 2026-2030", "Sinh hoạt chuyên đề Nghị quyết 57 chuyển đổi số", "Chiến dịch 'Kỳ nghỉ hồng' năm 2026",
+            "CTTN Tuyên truyền, HD cài app CSKH SAWACO", "Ngày cao điểm xây dựng phong trào công sở xanh - sạch",
+            "CTTN Tân trang tủ tín hiệu trên địa bàn quản lý", "Phối hợp Đoàn Phường vận động người dân sử dụng nước sạch",
+            "Thực hiện tổng kết giải pháp, mô hình tại đơn vị", "Vệ sinh, sắp xếp tài liệu Không gian Văn hóa HCM",
+            "Kỷ niệm 44 năm Ngày truyền thống Thanh niên công nhân", "Hưởng ứng Ngày CĐS Quốc gia; Thu thập sáng kiến",
+            "Tham gia 'Ngày pháp luật Nước CHXHCN Việt Nam'", "Hội thi 'Bàn tay vàng' ngành cấp nước TP.HCM",
+            "Kỷ niệm 21 năm ngày thành lập Công ty (15/12)", "Chương trình hiến máu - Lần 2"
+        ];
+        const activitiesData = activitiesList.map((str, idx) => ({
+            stt: idx + 1,
+            name: str,
+            time: idx < 8 ? 'Quý 1/2026' : (idx < 16 ? 'Quý 2/2026' : (idx < 22 ? 'Quý 3/2026' : 'Quý 4/2026')),
+            status: idx < 6 ? 'Hoàn Thành' : (idx === 6 || idx === 7 ? 'Đang Diễn Ra' : 'Sắp Tới')
+        }));
+
+        // Exact 6 Key Projects
+        const projectsData = [
+            { type: 'CTTN', name: 'Tuyến đường Thanh niên - Tuyên truyền bảo vệ môi trường, nguồn nước và chuyển đổi số', progress: 75, color: 'var(--primary)' },
+            { type: 'CTTN', name: 'Số hóa nhật ký hoạt động, tài liệu và thông tin đoàn viên của Cơ sở và Chi đoàn', progress: 40, color: 'var(--purple)' },
+            { type: 'CTTN', name: 'Tân trang tủ tín hiệu trên địa bàn công ty', progress: 15, color: 'var(--accent)' },
+            { type: 'CTTN', name: 'Hướng dẫn cài app CSKH SAWACO, hạn chế khai thác nước ngầm', progress: 90, color: 'var(--green)' },
+            { type: 'GIẢI PHÁP', name: 'Viết công cụ DASHBOARD quản lý Đoàn thanh niên', progress: 100, color: 'var(--green)' },
+            { type: 'GIẢI PHÁP', name: 'Ứng dụng TAWAGIS trong quản lý, vận động Hợp đồng điện tử', progress: 5, color: 'var(--red)' },
+        ];
+
+        // ======= CORE FUNCTIONS =======
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.nav-item').forEach(nv => nv.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(tb => tb.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function renderMembers(data) {
+            const tbody = document.querySelector('#tbl-members tbody');
+            tbody.innerHTML = data.map(m => `
+                <tr>
+                    <td><b>${m.stt}</b></td>
+                    <td style="font-family: monospace; color: var(--text-muted);">${m.id}</td>
+                    <td>
+                        <div class="user-block">
+                            <div class="avatar-circle">${m.name.split(' ').pop()[0]}</div>
+                            ${m.name}
+                        </div>
+                    </td>
+                    <td>${m.gender === 'Nam' 
+                        ? '<span class="tag tag-blue"><i class="fa-solid fa-mars"></i> Nam</span>' 
+                        : '<span class="tag tag-red"><i class="fa-solid fa-venus"></i> Nữ</span>'}
+                    </td>
+                    <td><span class="tag ${m.branch === 'Chi đoàn 1' ? 'tag-purple' : 'tag-orange'}">${m.branch}</span></td>
+                    <td>${m.place}</td>
+                    <td>
+                        <button onclick="openModal(${m._index})" style="cursor:pointer; color:var(--accent); text-decoration:none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.05); transition: all 0.2s;">
+                            <i class="fa-regular fa-eye"></i> Xem
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderData() {
+            // Render Members
+            renderMembers(membersData);
+
+            // Render Activities
+            const tblAct = document.querySelector('#tbl-activities tbody');
+            tblAct.innerHTML = activitiesData.map(a => {
+                let statusTag = '';
+                if(a.status === 'Hoàn Thành') statusTag = '<span class="tag tag-green">Hoàn Thành</span>';
+                else if(a.status === 'Đang Diễn Ra') statusTag = '<span class="tag tag-blue"><i class="fa-solid fa-spinner fa-spin"></i> Đang Diễn Ra</span>';
+                else statusTag = '<span class="tag tag-orange">Sắp Tới</span>';
+
+                return `<tr>
+                    <td style="font-weight: 700; color: var(--text-muted);">${a.stt}</td>
+                    <td style="font-weight: 600;">${a.name}</td>
+                    <td><i class="fa-regular fa-calendar-days" style="color:var(--primary); margin-right:5px;"></i> ${a.time}</td>
+                    <td>${statusTag}</td>
+                    <td><a href="#" style="color:var(--primary)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Xem</a></td>
+                </tr>`;
+            }).join('');
+
+            // Render Projects
+            const tblProj = document.querySelector('#tbl-projects tbody');
+            tblProj.innerHTML = projectsData.map((p, i) => `
+                <tr>
+                    <td style="font-weight:700;">${i+1}</td>
+                    <td><span class="tag ${p.type === 'CTTN' ? 'tag-blue' : 'tag-purple'}">${p.type}</span></td>
+                    <td style="font-weight: 600; font-size: 15px;">${p.name}</td>
+                    <td>
+                        <div class="progress-wrapper">
+                            <div class="progress-info">
+                                <span style="color: ${p.color};">${p.progress}% Hoàn thành</span>
+                            </div>
+                            <div class="progress-bg">
+                                <div class="progress-fill" style="width: ${p.progress}%; background-color: ${p.color};"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><button style="background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-weight:600;color:var(--text-body);cursor:pointer;">Chi tiết</button></td>
+                </tr>
+            `).join('');
+
+            // Render Cong Van Doan
+            if(window.CVD_DOAN_DATA && window.CVD_DOAN_DATA.docs) {
+                const tblCVD = document.querySelector('#tbl-congvan tbody');
+                if (window.CVD_DOAN_DATA.docs.length === 0) {
+                    tblCVD.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">Hệ thống chưa tải được văn bản mới hoặc không có văn bản nào.</td></tr>`;
+                } else {
+                    tblCVD.innerHTML = window.CVD_DOAN_DATA.docs.map(d => {
+                        let badgeColor = 'var(--blue)';
+                        if(d.loai.includes('KH') || d.loai.includes('Kế Hoạch')) badgeColor = 'var(--purple)';
+                        if(d.loai.includes('QĐ') || d.loai.includes('Quyết định')) badgeColor = 'var(--red)';
+                        
+                        return `<tr>
+                            <td style="font-weight: 700; color: var(--accent); font-size: 13px;">${d.soHieu || ''}</td>
+                            <td><i class="fa-regular fa-calendar" style="margin-right: 5px; color: var(--text-muted)"></i>${d.ngayDen || ''}</td>
+                            <td>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 5px;">${d.trichYeu}</div>
+                                <span class="tag" style="background: rgba(255,255,255,0.05); color: ${badgeColor}; border: 1px solid ${badgeColor}33;">${d.loai || 'Công văn'}</span>
+                            </td>
+                            <td>
+                                <a href="https://vpdt.capnuoctrungan.vn${d.link}" target="_blank" style="text-decoration: none;">
+                                    <button style="background:var(--primary-dark); border:none; border-radius:6px; padding:6px 12px; font-weight:600; color:white; cursor:pointer;">
+                                        <i class="fa-solid fa-download"></i> Tải Xem
+                                    </button>
+                                </a>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+            
+            fetchGoogleSheetData();
+
+            // Initialize Charts
+            new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['TC - Hành chính', 'Kế toán - TC', 'Kỹ thuật', 'Dịch vụ KH', 'QL Khách hàng 1', 'QL Khách hàng 2', 'Kinh doanh', 'Công nghệ TT', 'QL Dự án', 'Giảm nước KDT', 'Thi công Tu bổ'],
+                    datasets: [
+                        {
+                            label: 'Chi đoàn 1',
+                            data: [3, 2, 0, 10, 5, 11, 6, 0, 0, 0, 0],
+                            backgroundColor: '#1E40AF', // Deep blue
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Chi đoàn 2',
+                            data: [0, 0, 13, 0, 0, 0, 0, 3, 6, 16, 9],
+                            backgroundColor: '#F59E0B', // Amber
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'top' } }, 
+                    scales: { 
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true } 
+                    } 
+                }
+            });
+
+            new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Nam', 'Nữ'],
+                    datasets: [{ data: [70, 14], backgroundColor: ['#1e40af', '#ef4444'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+            });
+        });
+    </script>
+</body>
+</html>
